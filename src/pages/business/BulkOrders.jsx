@@ -96,8 +96,23 @@ const BulkOrders = () => {
       return;
     }
 
+    const availableStock = selectedVariant.inventory?.quantity ?? 0;
+    if (availableStock <= 0) {
+      setMsg({ text: 'This apparel variant is currently out of stock in the warehouse.', type: 'error' });
+      return;
+    }
+
     // Check if variant already exists in manifest
     const existingIndex = manifest.findIndex((item) => item.variant.id === selectedVariant.id);
+    const existingQty = existingIndex >= 0 ? manifest[existingIndex].quantity : 0;
+    if (existingQty + qty > availableStock) {
+      setMsg({
+        text: `Cannot add ${qty} units: Total quantity (${existingQty + qty}) would exceed available warehouse stock (${availableStock} units). Currently ${existingQty} in manifest.`,
+        type: 'error',
+      });
+      return;
+    }
+
     if (existingIndex >= 0) {
       // Update quantity of existing line
       const updated = [...manifest];
@@ -128,6 +143,15 @@ const BulkOrders = () => {
 
   const handleUpdateLineQuantity = (lineId, newQty) => {
     const qty = Math.max(10, parseInt(newQty, 10) || 10);
+    const lineItem = manifest.find((item) => item.lineId === lineId);
+    const lineStock = lineItem?.variant?.inventory?.quantity ?? 0;
+    if (lineStock > 0 && qty > lineStock) {
+      setMsg({
+        text: `Cannot set quantity to ${qty}: Only ${lineStock} units available in warehouse for ${lineItem.product?.name}.`,
+        type: 'error',
+      });
+      return;
+    }
     setManifest((prev) =>
       prev.map((item) => (item.lineId === lineId ? { ...item, quantity: qty } : item))
     );
@@ -342,12 +366,35 @@ const BulkOrders = () => {
                 {/* Variant Selector */}
                 {selectedProduct?.variants && selectedProduct.variants.length > 0 && (
                   <div style={{ marginBottom: '1.5rem' }}>
-                    <label style={{ display: 'block', fontWeight: 800, fontSize: '0.82rem', textTransform: 'uppercase', marginBottom: '0.6rem' }}>
-                      Size &amp; Color Specification
-                    </label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                      <label style={{ fontWeight: 800, fontSize: '0.82rem', textTransform: 'uppercase' }}>
+                        Size &amp; Color Specification
+                      </label>
+                      {selectedVariant && (
+                        (selectedVariant.inventory?.quantity ?? 0) > 0 ? (
+                          <span className="pr3-badge pr3-badge-sage" style={{ fontSize: '0.75rem' }}>
+                            ✓ Warehouse Stock: {selectedVariant.inventory.quantity} units available
+                          </span>
+                        ) : (
+                          <span
+                            className="pr3-badge"
+                            style={{
+                              backgroundColor: '#e53e3e',
+                              color: '#ffffff',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                            }}
+                          >
+                            ✕ OUT OF STOCK (0 units in warehouse)
+                          </span>
+                        )
+                      )}
+                    </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
                       {selectedProduct.variants.map((v) => {
                         const isVarSelected = selectedVariant?.id === v.id;
+                        const vStock = v.inventory?.quantity ?? 0;
+                        const vOutOfStock = vStock <= 0;
                         return (
                           <button
                             key={v.id}
@@ -356,15 +403,38 @@ const BulkOrders = () => {
                             style={{
                               padding: '0.55rem 1.1rem',
                               borderRadius: 'var(--radius-sm)',
-                              border: `1px solid ${isVarSelected ? 'var(--color-coral)' : 'rgba(23, 23, 23, 0.18)'}`,
-                              backgroundColor: isVarSelected ? 'var(--color-coral)' : 'var(--color-white)',
-                              color: isVarSelected ? 'var(--color-white)' : 'var(--color-black)',
+                              border: `1px solid ${
+                                isVarSelected
+                                  ? 'var(--color-coral)'
+                                  : vOutOfStock
+                                  ? 'rgba(229, 62, 62, 0.4)'
+                                  : 'rgba(23, 23, 23, 0.18)'
+                              }`,
+                              backgroundColor: isVarSelected
+                                ? 'var(--color-coral)'
+                                : vOutOfStock
+                                ? 'rgba(229, 62, 62, 0.05)'
+                                : 'var(--color-white)',
+                              color: isVarSelected
+                                ? 'var(--color-white)'
+                                : vOutOfStock
+                                ? '#c53030'
+                                : 'var(--color-black)',
                               fontWeight: 700,
                               cursor: 'pointer',
                               fontSize: '0.84rem',
                             }}
                           >
                             {v.size} · {v.color} (${parseFloat(v.price).toFixed(2)})
+                            {vOutOfStock ? (
+                              <span style={{ marginLeft: '0.4rem', fontSize: '0.75rem', opacity: 0.85 }}>
+                                (Out of stock)
+                              </span>
+                            ) : (
+                              <span style={{ marginLeft: '0.4rem', fontSize: '0.75rem', opacity: 0.75 }}>
+                                ({vStock} in stock)
+                              </span>
+                            )}
                           </button>
                         );
                       })}
@@ -409,6 +479,43 @@ const BulkOrders = () => {
                       ))}
                     </div>
                   </div>
+
+                  {/* Stock validation warning alert */}
+                  {selectedVariant && (selectedVariant.inventory?.quantity ?? 0) <= 0 && (
+                    <div
+                      style={{
+                        marginTop: '0.75rem',
+                        padding: '0.75rem 1rem',
+                        backgroundColor: '#fff5f5',
+                        border: '1px solid #fed7d7',
+                        borderRadius: 'var(--radius-sm)',
+                        color: '#c53030',
+                        fontSize: '0.85rem',
+                        fontWeight: 700,
+                      }}
+                    >
+                      ✕ This garment variant is out of stock in the warehouse. Please choose another size/color.
+                    </div>
+                  )}
+
+                  {selectedVariant &&
+                    (selectedVariant.inventory?.quantity ?? 0) > 0 &&
+                    itemQuantity > (selectedVariant.inventory?.quantity ?? 0) && (
+                      <div
+                        style={{
+                          marginTop: '0.75rem',
+                          padding: '0.75rem 1rem',
+                          backgroundColor: '#fffaf0',
+                          border: '1px solid #feebc8',
+                          borderRadius: 'var(--radius-sm)',
+                          color: '#c05621',
+                          fontSize: '0.85rem',
+                          fontWeight: 700,
+                        }}
+                      >
+                        ⚠️ Requested volume ({itemQuantity} units) exceeds available warehouse stock ({selectedVariant.inventory.quantity} units). Please reduce requested quantity.
+                      </div>
+                    )}
                 </div>
 
                 {/* Selected Item Subtotal & Add Button */}
@@ -436,14 +543,35 @@ const BulkOrders = () => {
                     </div>
                   </div>
 
-                  <Button
-                    type="button"
-                    variant="coral"
-                    onClick={handleAddToManifest}
-                    style={{ padding: '0.8rem 1.6rem', fontSize: '0.92rem', fontWeight: 800 }}
-                  >
-                    + Add Garment to Bulk Manifest
-                  </Button>
+                  {(() => {
+                    const availStock = selectedVariant?.inventory?.quantity ?? 0;
+                    const isOutOfStock = !selectedVariant || availStock <= 0;
+                    const exceedsStock = itemQuantity > availStock;
+                    const isBlocked = isOutOfStock || exceedsStock;
+
+                    let btnLabel = '+ Add Garment to Bulk Manifest';
+                    if (!selectedVariant) btnLabel = 'Select Size & Color';
+                    else if (isOutOfStock) btnLabel = '✕ Out of Stock';
+                    else if (exceedsStock) btnLabel = '⚠️ Exceeds Available Stock';
+
+                    return (
+                      <Button
+                        type="button"
+                        variant={isBlocked ? 'secondary' : 'coral'}
+                        disabled={isBlocked}
+                        onClick={handleAddToManifest}
+                        style={{
+                          padding: '0.8rem 1.6rem',
+                          fontSize: '0.92rem',
+                          fontWeight: 800,
+                          opacity: isBlocked ? 0.6 : 1,
+                          cursor: isBlocked ? 'not-allowed' : 'pointer',
+                        }}
+                      >
+                        {btnLabel}
+                      </Button>
+                    );
+                  })()}
                 </div>
               </div>
 

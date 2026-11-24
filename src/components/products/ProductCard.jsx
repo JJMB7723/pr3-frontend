@@ -10,6 +10,11 @@ const ProductCard = ({ product, onAddToCart }) => {
   const categoryName = product.category?.name || 'Apparel';
   const imageUrl = getProductImage(product);
 
+  const totalStock = product.variants && product.variants.length > 0
+    ? product.variants.reduce((sum, v) => sum + (v.inventory?.quantity ?? 0), 0)
+    : (primaryVariant?.inventory?.quantity ?? null);
+  const isOutOfStock = totalStock !== null && totalStock <= 0;
+
   return (
     <div
       style={{
@@ -76,7 +81,7 @@ const ProductCard = ({ product, onAddToCart }) => {
           </span>
         </div>
 
-        {/* Sage Green Stock Badge */}
+        {/* Stock Badge */}
         {product.isActive !== false && (
           <div
             style={{
@@ -86,9 +91,23 @@ const ProductCard = ({ product, onAddToCart }) => {
               zIndex: 2,
             }}
           >
-            <span className="pr3-badge pr3-badge-sage">
-              In Production
-            </span>
+            {isOutOfStock ? (
+              <span
+                className="pr3-badge"
+                style={{
+                  backgroundColor: '#e53e3e',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  boxShadow: '0 2px 8px rgba(229, 62, 62, 0.3)',
+                }}
+              >
+                Out of Stock
+              </span>
+            ) : (
+              <span className="pr3-badge pr3-badge-sage">
+                In Stock
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -196,15 +215,18 @@ const ProductCard = ({ product, onAddToCart }) => {
           </Link>
           {primaryVariant && (
             <Button
-              variant="coral"
-              onClick={() => onAddToCart && onAddToCart(primaryVariant.id)}
+              variant={isOutOfStock ? 'secondary' : 'coral'}
+              disabled={isOutOfStock}
+              onClick={() => !isOutOfStock && onAddToCart && onAddToCart(primaryVariant.id)}
               style={{
                 width: '100%',
                 padding: '0.65rem 0.5rem',
                 fontSize: '0.82rem',
+                opacity: isOutOfStock ? 0.6 : 1,
+                cursor: isOutOfStock ? 'not-allowed' : 'pointer',
               }}
             >
-              Add to Cart
+              {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
             </Button>
           )}
         </div>

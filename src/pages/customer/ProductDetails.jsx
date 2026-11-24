@@ -45,12 +45,24 @@ const ProductDetails = () => {
       return;
     }
 
+    const availableStock = selectedVariant.inventory?.quantity ?? 0;
+    if (availableStock <= 0) {
+      setStatusMsg('Cannot add to order: This product variant is currently out of stock.');
+      return;
+    }
+
+    const requestedQty = parseInt(quantity, 10);
+    if (requestedQty > availableStock) {
+      setStatusMsg(`Cannot add ${requestedQty} units: Only ${availableStock} units available in stock.`);
+      return;
+    }
+
     try {
       await cartService.addItem({
         product_variant_id: selectedVariant.id,
-        quantity: parseInt(quantity, 10),
+        quantity: requestedQty,
       });
-      setStatusMsg(`Added ${quantity} item(s) to your cart.`);
+      setStatusMsg(`Added ${requestedQty} item(s) to your cart.`);
     } catch (err) {
       setStatusMsg(err.response?.data?.message || 'Failed to add to cart.');
     }
@@ -139,9 +151,29 @@ const ProductDetails = () => {
 
         {/* Product Details & Actions */}
         <div>
-          <span className="pr3-badge" style={{ marginBottom: '0.5rem' }}>
-            IN STOCK
-          </span>
+          {(() => {
+            const availStock = selectedVariant?.inventory?.quantity ?? 0;
+            if (availStock <= 0) {
+              return (
+                <span
+                  className="pr3-badge"
+                  style={{
+                    backgroundColor: '#e53e3e',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    marginBottom: '0.5rem',
+                  }}
+                >
+                  ✕ OUT OF STOCK
+                </span>
+              );
+            }
+            return (
+              <span className="pr3-badge pr3-badge-sage" style={{ marginBottom: '0.5rem' }}>
+                ✓ IN STOCK ({availStock} available)
+              </span>
+            );
+          })()}
           <h1 style={{ fontSize: '2rem', margin: '0.5rem 0 1rem' }}>{product.name}</h1>
           <p style={{ fontSize: '1.8rem', fontWeight: 900, marginBottom: '1.5rem' }}>
             ${parseFloat(currentPrice).toFixed(2)}
@@ -168,6 +200,8 @@ const ProductDetails = () => {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                 {product.variants.map((v) => {
                   const isSelected = selectedVariant?.id === v.id;
+                  const vStock = v.inventory?.quantity ?? 0;
+                  const isOOS = vStock <= 0;
                   return (
                     <button
                       key={v.id}
@@ -176,13 +210,28 @@ const ProductDetails = () => {
                       style={{
                         padding: '0.5rem 1rem',
                         fontWeight: 700,
-                        border: '1px solid var(--color-black)',
-                        backgroundColor: isSelected ? 'var(--color-black)' : 'var(--color-white)',
-                        color: isSelected ? 'var(--color-white)' : 'var(--color-black)',
+                        border: `1px solid ${
+                          isSelected
+                            ? 'var(--color-black)'
+                            : isOOS
+                            ? 'rgba(229, 62, 62, 0.4)'
+                            : 'rgba(23, 23, 23, 0.2)'
+                        }`,
+                        backgroundColor: isSelected
+                          ? 'var(--color-black)'
+                          : isOOS
+                          ? '#fff5f5'
+                          : 'var(--color-white)',
+                        color: isSelected
+                          ? 'var(--color-white)'
+                          : isOOS
+                          ? '#c53030'
+                          : 'var(--color-black)',
                         cursor: 'pointer',
                       }}
                     >
-                      {v.size || 'STD'} - {v.color || 'Standard'}
+                      {v.size || 'STD'} - {v.color || 'Standard'}{' '}
+                      {isOOS ? '(Out of stock)' : `(${vStock} in stock)`}
                     </button>
                   );
                 })}
@@ -191,24 +240,40 @@ const ProductDetails = () => {
           )}
 
           {/* Quantity Selector */}
-          <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <label
-              style={{
-                fontWeight: 700,
-                fontSize: '0.85rem',
-                textTransform: 'uppercase',
-              }}
-            >
-              Quantity:
-            </label>
-            <input
-              type="number"
-              min="1"
-              value={quantity}
-              onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-              className="pr3-input"
-              style={{ width: '80px' }}
-            />
+          <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <label
+                style={{
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Quantity:
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={quantity}
+                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                className="pr3-input"
+                style={{ width: '80px' }}
+              />
+            </div>
+
+            {selectedVariant && (selectedVariant.inventory?.quantity ?? 0) <= 0 && (
+              <p style={{ color: '#e53e3e', fontSize: '0.85rem', fontWeight: 700, marginTop: '0.5rem' }}>
+                ✕ This variant is currently out of stock. Please select another variant.
+              </p>
+            )}
+
+            {selectedVariant &&
+              (selectedVariant.inventory?.quantity ?? 0) > 0 &&
+              quantity > (selectedVariant.inventory?.quantity ?? 0) && (
+                <p style={{ color: '#c05621', fontSize: '0.85rem', fontWeight: 700, marginTop: '0.5rem' }}>
+                  ⚠️ Requested quantity ({quantity}) exceeds available stock ({selectedVariant.inventory.quantity} units).
+                </p>
+              )}
           </div>
 
           {statusMsg && (
@@ -225,13 +290,32 @@ const ProductDetails = () => {
             </div>
           )}
 
-          <Button
-            variant="primary"
-            onClick={handleAddToCart}
-            style={{ width: '100%', padding: '0.8rem' }}
-          >
-            Add to Order
-          </Button>
+          {(() => {
+            const availStock = selectedVariant?.inventory?.quantity ?? 0;
+            const isOutOfStock = !selectedVariant || availStock <= 0;
+            const exceedsStock = quantity > availStock;
+            const isBlocked = isOutOfStock || exceedsStock;
+
+            let btnText = 'Add to Order';
+            if (isOutOfStock) btnText = '✕ Out of Stock';
+            else if (exceedsStock) btnText = '⚠️ Quantity Exceeds Available Stock';
+
+            return (
+              <Button
+                variant={isBlocked ? 'secondary' : 'primary'}
+                onClick={handleAddToCart}
+                disabled={isBlocked}
+                style={{
+                  width: '100%',
+                  padding: '0.8rem',
+                  opacity: isBlocked ? 0.6 : 1,
+                  cursor: isBlocked ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {btnText}
+              </Button>
+            );
+          })()}
         </div>
       </div>
     </Layout>
