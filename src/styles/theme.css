@@ -1,0 +1,321 @@
+/* ==========================================================================
+   PR3 Luxury Fashion Commerce & Production Platform - Design Tokens
+   Brand Palette:
+     1. Oxblood Red:  #4A0F14 (Deep, rich burgundy red)
+     2. Apricot Glow: #F6B27A (Warm, soft apricot orange)
+     3. White:        #FFFFFF
+     4. Black/Slate:  #171717
+     5. Sage Green:   #5A7855 (Quality / stock verification)
+   ========================================================================== */
+
+:root {
+  --color-white: #FFFFFF;
+  --color-black: #171717;
+
+  /* The 2 Core User Brand Colors */
+  --color-oxblood: #4A0F14;
+  --color-apricot: #F6B27A;
+  
+  /* Primary Semantic Variables */
+  --color-primary: #4A0F14;
+  --color-accent: #F6B27A;
+  
+  /* System mappings for full app compatibility */
+  --color-coral: #4A0F14;         /* Oxblood Red: primary luxury anchor */
+  --color-gold: #F6B27A;          /* Apricot Glow: warm accent */
+  --color-sage: #5A7855;          /* Harmonized success / status */
+  
+  /* Soft tints for badges / subtle backgrounds */
+  --color-oxblood-light: rgba(74, 15, 20, 0.08);
+  --color-apricot-light: rgba(246, 178, 122, 0.22);
+  --color-coral-light: rgba(246, 178, 122, 0.18); /* Warm Apricot glow backing */
+  --color-coral-tint: rgba(74, 15, 20, 0.08);    /* Deep Oxblood soft wash */
+  --color-gold-light: rgba(246, 178, 122, 0.24);
+  --color-sage-light: rgba(90, 120, 85, 0.12);
+  --color-black-light: rgba(23, 23, 23, 0.04);
+
+  --font-family: -apple-system, BlinkMacSystemFont, "Plus Jakarta Sans", "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+
+  --shadow-subtle: 0 4px 20px rgba(23, 23, 23, 0.04);
+  --shadow-card: 0 8px 30px rgba(74, 15, 20, 0.05);
+  --shadow-hover: 0 16px 40px rgba(74, 15, 20, 0.12);
+  
+  --transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-white);
+  color: var(--color-black);
+  font-family: var(--font-family);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--color-black);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.18;
+}
+
+/* Containers */
+.pr3-container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .pr3-container {
+    padding: 0 1rem;
+  }
+}
+
+/* Button System */
+.pr3-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1.8rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: var(--transition);
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+
+/* 1. Oxblood Red CTA (Primary Action) */
+.pr3-btn-coral,
+.pr3-btn-oxblood {
+  background-color: var(--color-oxblood);
+  color: var(--color-white);
+  box-shadow: 0 4px 16px rgba(74, 15, 20, 0.28);
+}
+
+.pr3-btn-coral:hover:not(:disabled),
+.pr3-btn-oxblood:hover:not(:disabled) {
+  background-color: #2F070B;
+  color: var(--color-white);
+  border-color: var(--color-apricot);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(74, 15, 20, 0.35);
+}
+
+/* 2. Apricot Glow Action (Secondary CTA / Highlight) */
+.pr3-btn-apricot,
+.pr3-btn-gold {
+  background-color: var(--color-apricot);
+  color: var(--color-oxblood);
+  font-weight: 800;
+  box-shadow: 0 4px 16px rgba(246, 178, 122, 0.35);
+}
+
+.pr3-btn-apricot:hover:not(:disabled),
+.pr3-btn-gold:hover:not(:disabled) {
+  background-color: var(--color-oxblood);
+  color: var(--color-white);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(74, 15, 20, 0.30);
+}
+
+/* Black Primary Button */
+.pr3-btn-primary {
+  background-color: var(--color-oxblood);
+  color: var(--color-white);
+}
+
+.pr3-btn-primary:hover:not(:disabled) {
+  background-color: #2F070B;
+  color: var(--color-white);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(74, 15, 20, 0.25);
+}
+
+/* Secondary Button (Outline) */
+.pr3-btn-secondary {
+  background-color: var(--color-white);
+  color: var(--color-black);
+  border: 1px solid rgba(23, 23, 23, 0.18);
+}
+
+.pr3-btn-secondary:hover:not(:disabled) {
+  border-color: var(--color-oxblood) !important;
+  background-color: var(--color-oxblood) !important;
+  color: var(--color-white) !important;
+  transform: translateY(-2px);
+}
+
+.pr3-btn-track-return {
+  background-color: #fff9f5;
+  color: var(--color-oxblood);
+  border: 1.5px solid var(--color-apricot);
+  font-weight: 700;
+}
+
+.pr3-btn-track-return:hover:not(:disabled) {
+  background-color: var(--color-oxblood) !important;
+  color: var(--color-white) !important;
+  border-color: var(--color-oxblood) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(74, 15, 20, 0.25);
+}
+
+/* Sage Green Action */
+.pr3-btn-sage {
+  background-color: var(--color-sage);
+  color: var(--color-white);
+}
+
+.pr3-btn-sage:hover:not(:disabled) {
+  background-color: var(--color-black);
+  color: var(--color-white);
+  transform: translateY(-2px);
+}
+
+.pr3-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* Form Inputs */
+.pr3-input {
+  width: 100%;
+  padding: 0.85rem 1.2rem;
+  font-size: 0.95rem;
+  color: var(--color-black);
+  background-color: var(--color-white);
+  border: 1px solid rgba(23, 23, 23, 0.14);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: var(--transition);
+}
+
+.pr3-input:focus {
+  border-color: var(--color-oxblood);
+  box-shadow: 0 0 0 4px var(--color-apricot-light);
+}
+
+.pr3-input::placeholder {
+  color: rgba(23, 23, 23, 0.4);
+}
+
+/* Premium Cards */
+.pr3-card {
+  background-color: var(--color-white);
+  border: 1px solid rgba(23, 23, 23, 0.08);
+  border-radius: var(--radius-lg);
+  padding: 1.35rem 1.6rem;
+  box-shadow: var(--shadow-subtle);
+  transition: var(--transition);
+}
+
+.pr3-card:hover {
+  box-shadow: var(--shadow-hover);
+  border-color: rgba(74, 15, 20, 0.18);
+  transform: translateY(-3px);
+}
+
+/* Badges */
+.pr3-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-radius: var(--radius-full);
+}
+
+.pr3-badge-coral,
+.pr3-badge-oxblood {
+  background-color: var(--color-coral-light);
+  color: var(--color-oxblood);
+  border: 1px solid rgba(74, 15, 20, 0.12);
+}
+
+.pr3-badge-sage {
+  background-color: var(--color-sage-light);
+  color: var(--color-sage);
+}
+
+.pr3-badge-gold,
+.pr3-badge-apricot {
+  background-color: var(--color-apricot-light);
+  color: var(--color-oxblood);
+  border: 1px solid rgba(246, 178, 122, 0.45);
+}
+
+.pr3-badge-dark {
+  background-color: var(--color-black);
+  color: var(--color-white);
+}
+
+/* Data Tables */
+.pr3-table-wrapper {
+  background-color: var(--color-white);
+  border: 1px solid rgba(23, 23, 23, 0.08);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-subtle);
+}
+
+.pr3-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: var(--color-white);
+}
+
+.pr3-table th, .pr3-table td {
+  padding: 0.75rem 1.1rem;
+  text-align: left;
+}
+
+.pr3-table th {
+  background-color: rgba(23, 23, 23, 0.03);
+  color: var(--color-black);
+  font-weight: 800;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid rgba(23, 23, 23, 0.08);
+}
+
+.pr3-table td {
+  border-bottom: 1px solid rgba(23, 23, 23, 0.05);
+}
+
+.pr3-table tr:hover td {
+  background-color: rgba(74, 15, 20, 0.015);
+}
