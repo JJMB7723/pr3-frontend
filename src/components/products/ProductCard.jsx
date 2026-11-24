@@ -40,6 +40,7 @@ const ProductCard = ({ product, onAddToCart }) => {
           src={imageUrl}
           alt={product.name}
           onLoad={() => setImageLoaded(true)}
+          onError={() => setImageLoaded(true)}
           style={{
             position: 'absolute',
             top: 0,
