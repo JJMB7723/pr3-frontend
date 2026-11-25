@@ -15,7 +15,9 @@ const ProductDetails = () => {
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [statusMsg, setStatusMsg] = useState('');
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const isRetailCustomer = user?.role !== 'business';
+  const MAX_RETAIL_QTY = 50;
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -52,6 +54,10 @@ const ProductDetails = () => {
     }
 
     const requestedQty = parseInt(quantity, 10);
+    if (isRetailCustomer && requestedQty > MAX_RETAIL_QTY) {
+      setStatusMsg(`Retail customer orders are limited to a maximum of ${MAX_RETAIL_QTY} units. For larger wholesale quantities, please visit Wholesale Bulk Orders.`);
+      return;
+    }
     if (requestedQty > availableStock) {
       setStatusMsg(`Cannot add ${requestedQty} units: Only ${availableStock} units available in stock.`);
       return;
@@ -254,12 +260,26 @@ const ProductDetails = () => {
               <input
                 type="number"
                 min="1"
+                max={isRetailCustomer ? MAX_RETAIL_QTY : (selectedVariant?.inventory?.quantity ?? undefined)}
                 value={quantity}
-                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={(e) => {
+                  let val = Math.max(1, parseInt(e.target.value) || 1);
+                  if (isRetailCustomer && val > MAX_RETAIL_QTY) {
+                    val = MAX_RETAIL_QTY;
+                    setStatusMsg(`Retail order limit is ${MAX_RETAIL_QTY} units. Quantity capped at 50.`);
+                  }
+                  setQuantity(val);
+                }}
                 className="pr3-input"
                 style={{ width: '80px' }}
               />
             </div>
+
+            {isRetailCustomer && quantity >= MAX_RETAIL_QTY && (
+              <p style={{ color: 'var(--color-coral)', fontSize: '0.82rem', fontWeight: 700, marginTop: '0.4rem' }}>
+                Maximum retail order limit is 50 units. For wholesale bulk orders, please visit Wholesale Bulk Orders.
+              </p>
+            )}
 
             {selectedVariant && (selectedVariant.inventory?.quantity ?? 0) <= 0 && (
               <p style={{ color: '#e53e3e', fontSize: '0.85rem', fontWeight: 700, marginTop: '0.5rem' }}>

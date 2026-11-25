@@ -4,8 +4,13 @@ import Layout from '../../components/layout/Layout';
 import Loader from '../../components/common/Loader';
 import Button from '../../components/common/Button';
 import cartService from '../../services/cartService';
+import { useAuth } from '../../context/AuthContext';
 
 const Cart = () => {
+  const { user } = useAuth();
+  const isRetailCustomer = user?.role !== 'business';
+  const MAX_RETAIL_QTY = 50;
+
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -38,6 +43,11 @@ const Cart = () => {
     const newQty = currentQty + delta;
     if (newQty < 1) return;
 
+    if (isRetailCustomer && newQty > MAX_RETAIL_QTY) {
+      setError(`Retail orders are limited to a maximum of ${MAX_RETAIL_QTY} units per item. For larger quantities, please use Wholesale Bulk Ordering.`);
+      return;
+    }
+
     setError('');
     setInputQuantities((prev) => ({ ...prev, [itemId]: newQty }));
     try {
@@ -50,10 +60,17 @@ const Cart = () => {
   };
 
   const handleSetQuantity = async (itemId, targetQty) => {
-    const qty = parseInt(targetQty, 10);
+    let qty = parseInt(targetQty, 10);
     if (isNaN(qty) || qty < 1) return;
 
-    setError('');
+    if (isRetailCustomer && qty > MAX_RETAIL_QTY) {
+      qty = MAX_RETAIL_QTY;
+      setError(`Retail orders are limited to a maximum of ${MAX_RETAIL_QTY} units per item. Quantity capped at ${MAX_RETAIL_QTY}.`);
+    } else {
+      setError('');
+    }
+
+    setInputQuantities((prev) => ({ ...prev, [itemId]: qty }));
     try {
       await cartService.updateItem(itemId, qty);
       loadCart();
@@ -205,14 +222,28 @@ const Cart = () => {
                             <input
                               type="number"
                               min="1"
+                              max={isRetailCustomer ? MAX_RETAIL_QTY : undefined}
                               value={inputQuantities[item.id] !== undefined ? inputQuantities[item.id] : item.quantity}
                               onChange={(e) => {
-                                const val = e.target.value;
+                                let val = e.target.value;
+                                if (val !== '' && isRetailCustomer) {
+                                  const num = parseInt(val, 10);
+                                  if (num > MAX_RETAIL_QTY) {
+                                    val = String(MAX_RETAIL_QTY);
+                                    setError(`Retail order limit is ${MAX_RETAIL_QTY} units per item. For larger quantities, visit Wholesale Bulk Orders.`);
+                                  } else {
+                                    setError('');
+                                  }
+                                }
                                 setInputQuantities((prev) => ({ ...prev, [item.id]: val }));
                               }}
                               onBlur={(e) => {
-                                const parsed = parseInt(e.target.value, 10);
+                                let parsed = parseInt(e.target.value, 10);
                                 if (!isNaN(parsed) && parsed >= 1) {
+                                  if (isRetailCustomer && parsed > MAX_RETAIL_QTY) {
+                                    parsed = MAX_RETAIL_QTY;
+                                    setError(`Retail order limit is ${MAX_RETAIL_QTY} units per item.`);
+                                  }
                                   if (parsed !== item.quantity) {
                                     handleSetQuantity(item.id, parsed);
                                   }
@@ -233,7 +264,7 @@ const Cart = () => {
                                 fontWeight: 800,
                                 fontSize: '0.92rem',
                                 borderRadius: 'var(--radius-sm)',
-                                border: '1px solid rgba(23, 23, 23, 0.22)',
+                                border: `1px solid ${isRetailCustomer && item.quantity >= MAX_RETAIL_QTY ? 'var(--color-coral)' : 'rgba(23, 23, 23, 0.22)'}`,
                                 padding: '0 0.25rem',
                                 backgroundColor: 'var(--color-white)',
                                 color: 'var(--color-black)',
@@ -242,6 +273,7 @@ const Cart = () => {
                             <button
                               type="button"
                               onClick={() => handleUpdateQuantity(item.id, item.quantity, 1)}
+                              disabled={isRetailCustomer && item.quantity >= MAX_RETAIL_QTY}
                               aria-label="Increase quantity"
                               style={{
                                 width: '30px',
@@ -249,17 +281,23 @@ const Cart = () => {
                                 border: '1px solid rgba(23, 23, 23, 0.18)',
                                 borderRadius: 'var(--radius-sm)',
                                 background: 'var(--color-white)',
-                                cursor: 'pointer',
+                                cursor: isRetailCustomer && item.quantity >= MAX_RETAIL_QTY ? 'not-allowed' : 'pointer',
                                 fontWeight: 800,
                                 fontSize: '1rem',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
+                                opacity: isRetailCustomer && item.quantity >= MAX_RETAIL_QTY ? 0.4 : 1,
                               }}
                             >
                               +
                             </button>
                           </div>
+                          {isRetailCustomer && item.quantity >= MAX_RETAIL_QTY && (
+                            <div style={{ fontSize: '0.68rem', color: 'var(--color-coral)', fontWeight: 800, marginTop: '0.2rem' }}>
+                              Max retail limit (50 pcs)
+                            </div>
+                          )}
                         </td>
                         <td style={{ fontWeight: 900, color: 'var(--color-coral)' }}>
                           ${itemTotal.toFixed(2)}
