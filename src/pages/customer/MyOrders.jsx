@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import Layout from '../../components/layout/Layout';
 import Loader from '../../components/common/Loader';
 import Button from '../../components/common/Button';
@@ -13,10 +14,14 @@ const MyOrders = () => {
   const [error, setError] = useState('');
   const [actionMsg, setActionMsg] = useState('');
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
+    setOrders([]);       // Clear stale orders immediately on user change
+    setReturnsList([]);
+    setLoading(true);
     loadOrdersAndReturns();
-  }, []);
+  }, [user?.id]);        // Re-fetch whenever a different user logs in
 
   const loadOrdersAndReturns = async () => {
     try {
