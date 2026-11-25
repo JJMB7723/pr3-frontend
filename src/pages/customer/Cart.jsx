@@ -9,6 +9,7 @@ const Cart = () => {
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [inputQuantities, setInputQuantities] = useState({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -20,6 +21,12 @@ const Cart = () => {
       const res = await cartService.getCart();
       const data = res.data || res.cart || res;
       setCart(data);
+      const itemsList = data?.items || [];
+      const qtyMap = {};
+      itemsList.forEach((it) => {
+        qtyMap[it.id] = it.quantity;
+      });
+      setInputQuantities(qtyMap);
     } catch {
       setError('Unable to fetch shopping cart.');
     } finally {
@@ -31,11 +38,28 @@ const Cart = () => {
     const newQty = currentQty + delta;
     if (newQty < 1) return;
 
+    setError('');
+    setInputQuantities((prev) => ({ ...prev, [itemId]: newQty }));
     try {
       await cartService.updateItem(itemId, newQty);
       loadCart();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update quantity.');
+      loadCart();
+    }
+  };
+
+  const handleSetQuantity = async (itemId, targetQty) => {
+    const qty = parseInt(targetQty, 10);
+    if (isNaN(qty) || qty < 1) return;
+
+    setError('');
+    try {
+      await cartService.updateItem(itemId, qty);
+      loadCart();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update quantity.');
+      loadCart();
     }
   };
 
@@ -155,37 +179,82 @@ const Cart = () => {
                         </td>
                         <td style={{ fontWeight: 700 }}>${unitPrice.toFixed(2)}</td>
                         <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                             <button
                               type="button"
                               onClick={() => handleUpdateQuantity(item.id, item.quantity, -1)}
                               disabled={item.quantity <= 1}
+                              aria-label="Decrease quantity"
                               style={{
-                                width: '28px',
-                                height: '28px',
+                                width: '30px',
+                                height: '30px',
                                 border: '1px solid rgba(23, 23, 23, 0.18)',
                                 borderRadius: 'var(--radius-sm)',
                                 background: 'var(--color-white)',
-                                cursor: 'pointer',
+                                cursor: item.quantity <= 1 ? 'not-allowed' : 'pointer',
                                 fontWeight: 800,
+                                fontSize: '1rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                opacity: item.quantity <= 1 ? 0.4 : 1,
                               }}
                             >
                               -
                             </button>
-                            <span style={{ fontWeight: 800, minWidth: '22px', textAlign: 'center' }}>
-                              {item.quantity}
-                            </span>
+                            <input
+                              type="number"
+                              min="1"
+                              value={inputQuantities[item.id] !== undefined ? inputQuantities[item.id] : item.quantity}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setInputQuantities((prev) => ({ ...prev, [item.id]: val }));
+                              }}
+                              onBlur={(e) => {
+                                const parsed = parseInt(e.target.value, 10);
+                                if (!isNaN(parsed) && parsed >= 1) {
+                                  if (parsed !== item.quantity) {
+                                    handleSetQuantity(item.id, parsed);
+                                  }
+                                } else {
+                                  setInputQuantities((prev) => ({ ...prev, [item.id]: item.quantity }));
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.target.blur();
+                                }
+                              }}
+                              aria-label="Order item quantity"
+                              style={{
+                                width: '56px',
+                                height: '30px',
+                                textAlign: 'center',
+                                fontWeight: 800,
+                                fontSize: '0.92rem',
+                                borderRadius: 'var(--radius-sm)',
+                                border: '1px solid rgba(23, 23, 23, 0.22)',
+                                padding: '0 0.25rem',
+                                backgroundColor: 'var(--color-white)',
+                                color: 'var(--color-black)',
+                              }}
+                            />
                             <button
                               type="button"
                               onClick={() => handleUpdateQuantity(item.id, item.quantity, 1)}
+                              aria-label="Increase quantity"
                               style={{
-                                width: '28px',
-                                height: '28px',
+                                width: '30px',
+                                height: '30px',
                                 border: '1px solid rgba(23, 23, 23, 0.18)',
                                 borderRadius: 'var(--radius-sm)',
                                 background: 'var(--color-white)',
                                 cursor: 'pointer',
                                 fontWeight: 800,
+                                fontSize: '1rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
                               }}
                             >
                               +
