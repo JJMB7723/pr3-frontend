@@ -40,14 +40,23 @@ const AdminOrders = () => {
   return (
     <Layout withSidebar>
       <div style={{ maxWidth: '1180px', margin: '0 auto' }}>
-        <div style={{ marginBottom: '1.25rem' }}>
-          <span className="pr3-badge pr3-badge-coral" style={{ marginBottom: '0.4rem' }}>
-            Operations &amp; Fulfillment
-          </span>
-          <h1 style={{ fontSize: '2.2rem', letterSpacing: '-0.03em' }}>Customer Orders</h1>
-          <p style={{ color: 'rgba(23, 23, 23, 0.72)', fontSize: '0.95rem' }}>
-            Review customer orders, inspect purchased garments and shipping addresses, and manage status transitions.
-          </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <span className="pr3-badge pr3-badge-coral" style={{ marginBottom: '0.4rem' }}>
+              Operations &amp; Fulfillment
+            </span>
+            <h1 style={{ fontSize: '2.2rem', letterSpacing: '-0.03em' }}>Customer &amp; Bulk Orders</h1>
+            <p style={{ color: 'rgba(23, 23, 23, 0.72)', fontSize: '0.95rem' }}>
+              Review retail customer and corporate wholesale orders, inspect purchased garments, and manage fulfillment.
+            </p>
+          </div>
+          <Button
+            variant="secondary"
+            onClick={loadOrders}
+            style={{ fontSize: '0.85rem', padding: '0.6rem 1.1rem' }}
+          >
+            ↻ Refresh Orders
+          </Button>
         </div>
 
         {msg && (
@@ -79,102 +88,140 @@ const AdminOrders = () => {
               </tr>
             </thead>
             <tbody>
-              {orders.map((o) => {
-                const displayOrderNumber = o.orderNumber || o.order_number || `PR3-ORD-${1000 + o.id}`;
-                const displayTotal = o.totalAmount || o.total_amount || 0;
-                const displayStatus = o.orderStatus || o.order_status || o.status || 'pending';
+              {orders.length === 0 ? (
+                <tr>
+                  <td colSpan="6" style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'rgba(23, 23, 23, 0.65)' }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.4rem' }}>No orders found</div>
+                    <p style={{ fontSize: '0.85rem', margin: 0 }}>Customer and wholesale orders will appear here once placed.</p>
+                  </td>
+                </tr>
+              ) : (
+                orders.map((o) => {
+                  const displayOrderNumber = o.orderNumber || o.order_number || `PR3-ORD-${1000 + o.id}`;
+                  const displayTotal = o.totalAmount || o.total_amount || 0;
+                  const displayStatus = o.orderStatus || o.order_status || o.status || 'pending';
 
-                // Customer identity details
-                const customerName =
-                  o.user
-                    ? `${o.user.firstName || o.user.first_name || ''} ${o.user.lastName || o.user.last_name || ''}`.trim()
-                    : o.shippingName || o.shipping_name || `Customer #${o.user_id || o.userId}`;
-                const customerEmail = o.user?.email || 'N/A';
-                const itemsCount = o.order_items ? o.order_items.length : 0;
+                  // Customer identity details
+                  const customerName =
+                    o.user
+                      ? `${o.user.firstName || o.user.first_name || ''} ${o.user.lastName || o.user.last_name || ''}`.trim()
+                      : o.shippingName || o.shipping_name || `Customer #${o.user_id || o.userId}`;
+                  const customerEmail = o.user?.email || 'N/A';
+                  const userRole = o.user?.role || 'customer';
+                  const itemsCount = o.order_items ? o.order_items.length : 0;
+                  const totalUnits = o.order_items
+                    ? o.order_items.reduce((sum, item) => sum + (parseInt(item.quantity, 10) || 0), 0)
+                    : 0;
+                  const isBulkOrder = totalUnits >= 10 || userRole === 'business';
 
-                let badgeClass = 'pr3-badge-sage';
-                if (displayStatus === 'cancelled') badgeClass = 'pr3-badge-coral';
-                if (displayStatus === 'pending') badgeClass = 'pr3-badge-gold';
+                  let badgeClass = 'pr3-badge-sage';
+                  if (displayStatus === 'cancelled') badgeClass = 'pr3-badge-coral';
+                  if (displayStatus === 'pending') badgeClass = 'pr3-badge-gold';
 
-                return (
-                  <tr key={o.id}>
-                    <td>
-                      <strong style={{ fontSize: '0.95rem', color: 'var(--color-black)' }}>
-                        {displayOrderNumber}
-                      </strong>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 800 }}>{customerName}</div>
-                      <div style={{ fontSize: '0.78rem', color: 'rgba(23, 23, 23, 0.65)' }}>
-                        {customerEmail}
-                      </div>
-                    </td>
-                    <td>
-                      {itemsCount > 0 ? (
-                        <div>
-                          {o.order_items.slice(0, 2).map((item) => (
-                            <div key={item.id} style={{ fontSize: '0.85rem' }}>
-                              <span style={{ fontWeight: 700 }}>
-                                {item.product_variant?.product?.name || 'Garment'}
-                              </span>{' '}
-                              <span style={{ color: 'rgba(23, 23, 23, 0.6)' }}>
-                                ({item.product_variant?.size} · {item.product_variant?.color})
-                              </span>{' '}
-                              × <strong>{item.quantity}</strong>
-                            </div>
-                          ))}
-                          {itemsCount > 2 && (
-                            <span style={{ fontSize: '0.75rem', color: 'var(--color-coral)', fontWeight: 700 }}>
-                              +{itemsCount - 2} more item(s)
+                  return (
+                    <tr key={o.id}>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                          <strong style={{ fontSize: '0.95rem', color: 'var(--color-black)' }}>
+                            {displayOrderNumber}
+                          </strong>
+                          {isBulkOrder && (
+                            <span
+                              className="pr3-badge pr3-badge-coral"
+                              style={{ fontSize: '0.68rem', fontWeight: 800, alignSelf: 'flex-start' }}
+                            >
+                              WHOLESALE BULK ({totalUnits} units)
                             </span>
                           )}
                         </div>
-                      ) : (
-                        <span style={{ fontSize: '0.82rem', color: 'rgba(23, 23, 23, 0.5)' }}>1 item</span>
-                      )}
-                    </td>
-                    <td style={{ fontWeight: 900, color: 'var(--color-coral)', fontSize: '1rem' }}>
-                      ${parseFloat(displayTotal).toFixed(2)}
-                    </td>
-                    <td>
-                      <span className={`pr3-badge ${badgeClass}`}>{displayStatus}</span>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
-                        <select
-                          value={displayStatus}
-                          onChange={(e) => handleStatusChange(o.id, e.target.value)}
-                          className="pr3-input"
-                          style={{
-                            width: 'auto',
-                            padding: '0.45rem 0.8rem',
-                            fontSize: '0.82rem',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          <option value="pending">pending</option>
-                          <option value="confirmed">confirmed</option>
-                          <option value="processing">processing</option>
-                          <option value="shipped">shipped</option>
-                          <option value="delivered">delivered</option>
-                          <option value="cancelled">cancelled</option>
-                        </select>
-                        <Button
-                          variant="secondary"
-                          onClick={() => setSelectedOrder(o)}
-                          style={{
-                            padding: '0.45rem 0.85rem',
-                            fontSize: '0.78rem',
-                          }}
-                        >
-                          View Details
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <span style={{ fontWeight: 800 }}>{customerName}</span>
+                          {userRole === 'business' && (
+                            <span
+                              className="pr3-badge"
+                              style={{
+                                fontSize: '0.65rem',
+                                backgroundColor: 'rgba(23, 23, 23, 0.08)',
+                                textTransform: 'uppercase',
+                              }}
+                            >
+                              Business
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '0.78rem', color: 'rgba(23, 23, 23, 0.65)' }}>
+                          {customerEmail}
+                        </div>
+                      </td>
+                      <td>
+                        {itemsCount > 0 ? (
+                          <div>
+                            {o.order_items.slice(0, 2).map((item) => (
+                              <div key={item.id} style={{ fontSize: '0.85rem' }}>
+                                <span style={{ fontWeight: 700 }}>
+                                  {item.product_variant?.product?.name || 'Garment'}
+                                </span>{' '}
+                                <span style={{ color: 'rgba(23, 23, 23, 0.6)' }}>
+                                  ({item.product_variant?.size} · {item.product_variant?.color})
+                                </span>{' '}
+                                × <strong>{item.quantity}</strong>
+                              </div>
+                            ))}
+                            {itemsCount > 2 && (
+                              <span style={{ fontSize: '0.75rem', color: 'var(--color-coral)', fontWeight: 700 }}>
+                                +{itemsCount - 2} more item(s)
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: '0.82rem', color: 'rgba(23, 23, 23, 0.5)' }}>1 item</span>
+                        )}
+                      </td>
+                      <td style={{ fontWeight: 900, color: 'var(--color-coral)', fontSize: '1rem' }}>
+                        ${parseFloat(displayTotal).toFixed(2)}
+                      </td>
+                      <td>
+                        <span className={`pr3-badge ${badgeClass}`}>{displayStatus}</span>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                          <select
+                            value={displayStatus}
+                            onChange={(e) => handleStatusChange(o.id, e.target.value)}
+                            className="pr3-input"
+                            style={{
+                              width: 'auto',
+                              padding: '0.45rem 0.8rem',
+                              fontSize: '0.82rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <option value="pending">pending</option>
+                            <option value="confirmed">confirmed</option>
+                            <option value="processing">processing</option>
+                            <option value="shipped">shipped</option>
+                            <option value="delivered">delivered</option>
+                            <option value="cancelled">cancelled</option>
+                          </select>
+                          <Button
+                            variant="secondary"
+                            onClick={() => setSelectedOrder(o)}
+                            style={{
+                              padding: '0.45rem 0.85rem',
+                              fontSize: '0.78rem',
+                            }}
+                          >
+                            View Details
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

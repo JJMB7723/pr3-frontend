@@ -11,6 +11,7 @@ const Sidebar = () => {
       { to: '/admin/dashboard', label: 'Overview' },
       { to: '/admin/products', label: 'Products & Categories' },
       { to: '/admin/orders', label: 'Orders & Fulfillment' },
+      { to: '/business/bulk-orders', label: 'Wholesale Bulk Orders' },
       { to: '/admin/inventory', label: 'Inventory & Stock' },
       { to: '/admin/manufacturing', label: 'Manufacturing & QC' },
       { to: '/admin/deliveries', label: 'Dispatch & Deliveries' },

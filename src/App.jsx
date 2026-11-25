@@ -177,7 +177,7 @@ function App() {
           <Route
             path="/business/dashboard"
             element={
-              <ProtectedRoute allowedRoles={['business']}>
+              <ProtectedRoute allowedRoles={['business', 'admin']}>
                 <BusinessDashboard />
               </ProtectedRoute>
             }
@@ -185,7 +185,7 @@ function App() {
           <Route
             path="/business/bulk-orders"
             element={
-              <ProtectedRoute allowedRoles={['business']}>
+              <ProtectedRoute allowedRoles={['business', 'admin']}>
                 <BulkOrders />
               </ProtectedRoute>
             }
@@ -193,7 +193,7 @@ function App() {
           <Route
             path="/business/orders"
             element={
-              <ProtectedRoute allowedRoles={['business']}>
+              <ProtectedRoute allowedRoles={['business', 'admin']}>
                 <MyOrders />
               </ProtectedRoute>
             }
@@ -201,7 +201,7 @@ function App() {
           <Route
             path="/business/catalog"
             element={
-              <ProtectedRoute allowedRoles={['business']}>
+              <ProtectedRoute allowedRoles={['business', 'admin']}>
                 <BusinessCatalog />
               </ProtectedRoute>
             }
