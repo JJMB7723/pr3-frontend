@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Layout from '../../components/layout/Layout';
 import Loader from '../../components/common/Loader';
@@ -15,10 +15,15 @@ const Cart = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [inputQuantities, setInputQuantities] = useState({});
+  const syncTimeoutRef = useRef({});
   const navigate = useNavigate();
 
   useEffect(() => {
     loadCart();
+    return () => {
+      // Cleanup all pending timers on unmount
+      Object.values(syncTimeoutRef.current).forEach((t) => clearTimeout(t));
+    };
   }, []);
 
   const loadCart = async () => {
@@ -49,10 +54,45 @@ const Cart = () => {
     }
 
     setError('');
+    // 1. Immediately update input state
     setInputQuantities((prev) => ({ ...prev, [itemId]: newQty }));
+
+    // 2. Optimistically update cart in memory for 0ms instant display of new totals
+    setCart((prevCart) => {
+      if (!prevCart) return prevCart;
+      const updatedItems = (prevCart.items || []).map((it) =>
+        it.id === itemId
+          ? {
+              ...it,
+              quantity: newQty,
+              item_total: parseFloat(it.unit_price || it.price || 0) * newQty,
+            }
+          : it
+      );
+      const newSubtotal = updatedItems.reduce(
+        (sum, it) => sum + parseFloat(it.unit_price || it.price || 0) * it.quantity,
+        0
+      );
+      return {
+        ...prevCart,
+        items: updatedItems,
+        subtotal: newSubtotal,
+        total: newSubtotal,
+      };
+    });
+
+    // 3. Clear any pending debounce timer
+    if (syncTimeoutRef.current[itemId]) {
+      clearTimeout(syncTimeoutRef.current[itemId]);
+    }
+
+    // 4. Sync with backend in background
     try {
-      await cartService.updateItem(itemId, newQty);
-      loadCart();
+      const res = await cartService.updateItem(itemId, newQty);
+      const data = res.data || res.cart || res;
+      if (data && data.items) {
+        setCart(data);
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update quantity.');
       loadCart();
@@ -70,13 +110,94 @@ const Cart = () => {
       setError('');
     }
 
+    // 1. Immediately update input state
     setInputQuantities((prev) => ({ ...prev, [itemId]: qty }));
+
+    // 2. Optimistically update cart in memory for 0ms instant display of new totals
+    setCart((prevCart) => {
+      if (!prevCart) return prevCart;
+      const updatedItems = (prevCart.items || []).map((it) =>
+        it.id === itemId
+          ? {
+              ...it,
+              quantity: qty,
+              item_total: parseFloat(it.unit_price || it.price || 0) * qty,
+            }
+          : it
+      );
+      const newSubtotal = updatedItems.reduce(
+        (sum, it) => sum + parseFloat(it.unit_price || it.price || 0) * it.quantity,
+        0
+      );
+      return {
+        ...prevCart,
+        items: updatedItems,
+        subtotal: newSubtotal,
+        total: newSubtotal,
+      };
+    });
+
+    // 3. Sync with backend in background
     try {
-      await cartService.updateItem(itemId, qty);
-      loadCart();
+      const res = await cartService.updateItem(itemId, qty);
+      const data = res.data || res.cart || res;
+      if (data && data.items) {
+        setCart(data);
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update quantity.');
       loadCart();
+    }
+  };
+
+  const handleInputChange = (itemId, rawValue) => {
+    let val = rawValue;
+    if (val !== '' && isRetailCustomer) {
+      const num = parseInt(val, 10);
+      if (num > MAX_RETAIL_QTY) {
+        val = String(MAX_RETAIL_QTY);
+        setError(`Retail order limit is ${MAX_RETAIL_QTY} units per item.`);
+      } else {
+        setError('');
+      }
+    }
+    setInputQuantities((prev) => ({ ...prev, [itemId]: val }));
+
+    const parsed = parseInt(val, 10);
+    if (!isNaN(parsed) && parsed >= 1) {
+      // Live optimistic calculation of the cart state so line item total and subtotal change in real-time while typing!
+      setCart((prevCart) => {
+        if (!prevCart) return prevCart;
+        const updatedItems = (prevCart.items || []).map((it) =>
+          it.id === itemId
+            ? {
+                ...it,
+                quantity: parsed,
+                item_total: parseFloat(it.unit_price || it.price || 0) * parsed,
+              }
+            : it
+        );
+        const newSubtotal = updatedItems.reduce(
+          (sum, it) => sum + parseFloat(it.unit_price || it.price || 0) * it.quantity,
+          0
+        );
+        return {
+          ...prevCart,
+          items: updatedItems,
+          subtotal: newSubtotal,
+          total: newSubtotal,
+        };
+      });
+
+      // Clear existing debounce timer
+      if (syncTimeoutRef.current[itemId]) {
+        clearTimeout(syncTimeoutRef.current[itemId]);
+      }
+
+      // Automatically sync with backend 400ms after user stops typing
+      syncTimeoutRef.current[itemId] = setTimeout(() => {
+        handleSetQuantity(itemId, parsed);
+      }, 400);
     }
   };
 
@@ -102,10 +223,13 @@ const Cart = () => {
 
   const items = cart?.items || [];
   
-  // Calculate total: backend provides pre-calculated subtotal/total or compute from item_total/unit_price
-  const subtotal = cart?.subtotal || cart?.total || items.reduce((acc, item) => {
-    const price = item.unit_price || item.product_variant?.price || item.price || 0;
-    return acc + parseFloat(price) * item.quantity;
+  // Real-time live calculation: dynamically computes subtotal using the live active quantity for each item
+  const subtotal = items.reduce((acc, item) => {
+    const price = parseFloat(item.unit_price || item.product_variant?.price || item.price || 0);
+    const activeQty = inputQuantities[item.id] !== undefined && inputQuantities[item.id] !== ''
+      ? parseInt(inputQuantities[item.id], 10) || item.quantity
+      : item.quantity;
+    return acc + price * activeQty;
   }, 0);
 
   return (
@@ -154,7 +278,7 @@ const Cart = () => {
         {items.length === 0 ? (
           <div className="pr3-card" style={{ textAlign: 'center', padding: '4.5rem 2rem' }}>
             <h2 style={{ fontSize: '1.6rem', marginBottom: '0.6rem' }}>Your cart is empty</h2>
-            <p style={{ color: 'rgba(23, 23, 23, 0.65)', margin: '0 auto 1.8rem', maxWidth: '400px' }}>
+            <p style={{ color: 'rgba(23, 23, 0.65)', margin: '0 auto 1.8rem', maxWidth: '400px' }}>
               Explore our apparel collection to add items to your shopping cart.
             </p>
             <Link to="/">
@@ -177,12 +301,14 @@ const Cart = () => {
                 </thead>
                 <tbody>
                   {items.map((item) => {
-                    // Match the backend cartService formatted payload
                     const name = item.product_name || item.product_variant?.product?.name || 'Apparel Item';
                     const size = item.size || item.product_variant?.size || '';
                     const color = item.color || item.product_variant?.color || '';
                     const unitPrice = parseFloat(item.unit_price || item.product_variant?.price || item.price || 0);
-                    const itemTotal = parseFloat(item.item_total || unitPrice * item.quantity || 0);
+                    const activeQty = inputQuantities[item.id] !== undefined && inputQuantities[item.id] !== ''
+                      ? parseInt(inputQuantities[item.id], 10) || item.quantity
+                      : item.quantity;
+                    const itemTotal = unitPrice * activeQty;
 
                     return (
                       <tr key={item.id}>
@@ -199,8 +325,8 @@ const Cart = () => {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                             <button
                               type="button"
-                              onClick={() => handleUpdateQuantity(item.id, item.quantity, -1)}
-                              disabled={item.quantity <= 1}
+                              onClick={() => handleUpdateQuantity(item.id, activeQty, -1)}
+                              disabled={activeQty <= 1}
                               aria-label="Decrease quantity"
                               style={{
                                 width: '30px',
@@ -208,13 +334,13 @@ const Cart = () => {
                                 border: '1px solid rgba(23, 23, 23, 0.18)',
                                 borderRadius: 'var(--radius-sm)',
                                 background: 'var(--color-white)',
-                                cursor: item.quantity <= 1 ? 'not-allowed' : 'pointer',
+                                cursor: activeQty <= 1 ? 'not-allowed' : 'pointer',
                                 fontWeight: 800,
                                 fontSize: '1rem',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                opacity: item.quantity <= 1 ? 0.4 : 1,
+                                opacity: activeQty <= 1 ? 0.4 : 1,
                               }}
                             >
                               -
@@ -224,29 +350,18 @@ const Cart = () => {
                               min="1"
                               max={isRetailCustomer ? MAX_RETAIL_QTY : undefined}
                               value={inputQuantities[item.id] !== undefined ? inputQuantities[item.id] : item.quantity}
-                              onChange={(e) => {
-                                let val = e.target.value;
-                                if (val !== '' && isRetailCustomer) {
-                                  const num = parseInt(val, 10);
-                                  if (num > MAX_RETAIL_QTY) {
-                                    val = String(MAX_RETAIL_QTY);
-                                    setError(`Retail order limit is ${MAX_RETAIL_QTY} units per item. For larger quantities, visit Wholesale Bulk Orders.`);
-                                  } else {
-                                    setError('');
-                                  }
-                                }
-                                setInputQuantities((prev) => ({ ...prev, [item.id]: val }));
-                              }}
+                              onChange={(e) => handleInputChange(item.id, e.target.value)}
                               onBlur={(e) => {
+                                if (syncTimeoutRef.current[item.id]) {
+                                  clearTimeout(syncTimeoutRef.current[item.id]);
+                                }
                                 let parsed = parseInt(e.target.value, 10);
                                 if (!isNaN(parsed) && parsed >= 1) {
                                   if (isRetailCustomer && parsed > MAX_RETAIL_QTY) {
                                     parsed = MAX_RETAIL_QTY;
                                     setError(`Retail order limit is ${MAX_RETAIL_QTY} units per item.`);
                                   }
-                                  if (parsed !== item.quantity) {
-                                    handleSetQuantity(item.id, parsed);
-                                  }
+                                  handleSetQuantity(item.id, parsed);
                                 } else {
                                   setInputQuantities((prev) => ({ ...prev, [item.id]: item.quantity }));
                                 }
@@ -264,7 +379,7 @@ const Cart = () => {
                                 fontWeight: 800,
                                 fontSize: '0.92rem',
                                 borderRadius: 'var(--radius-sm)',
-                                border: `1px solid ${isRetailCustomer && item.quantity >= MAX_RETAIL_QTY ? 'var(--color-coral)' : 'rgba(23, 23, 23, 0.22)'}`,
+                                border: `1px solid ${isRetailCustomer && activeQty >= MAX_RETAIL_QTY ? 'var(--color-coral)' : 'rgba(23, 23, 23, 0.22)'}`,
                                 padding: '0 0.25rem',
                                 backgroundColor: 'var(--color-white)',
                                 color: 'var(--color-black)',
@@ -272,8 +387,8 @@ const Cart = () => {
                             />
                             <button
                               type="button"
-                              onClick={() => handleUpdateQuantity(item.id, item.quantity, 1)}
-                              disabled={isRetailCustomer && item.quantity >= MAX_RETAIL_QTY}
+                              onClick={() => handleUpdateQuantity(item.id, activeQty, 1)}
+                              disabled={isRetailCustomer && activeQty >= MAX_RETAIL_QTY}
                               aria-label="Increase quantity"
                               style={{
                                 width: '30px',
@@ -281,19 +396,19 @@ const Cart = () => {
                                 border: '1px solid rgba(23, 23, 23, 0.18)',
                                 borderRadius: 'var(--radius-sm)',
                                 background: 'var(--color-white)',
-                                cursor: isRetailCustomer && item.quantity >= MAX_RETAIL_QTY ? 'not-allowed' : 'pointer',
+                                cursor: isRetailCustomer && activeQty >= MAX_RETAIL_QTY ? 'not-allowed' : 'pointer',
                                 fontWeight: 800,
                                 fontSize: '1rem',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                opacity: isRetailCustomer && item.quantity >= MAX_RETAIL_QTY ? 0.4 : 1,
+                                opacity: isRetailCustomer && activeQty >= MAX_RETAIL_QTY ? 0.4 : 1,
                               }}
                             >
                               +
                             </button>
                           </div>
-                          {isRetailCustomer && item.quantity >= MAX_RETAIL_QTY && (
+                          {isRetailCustomer && activeQty >= MAX_RETAIL_QTY && (
                             <div style={{ fontSize: '0.68rem', color: 'var(--color-coral)', fontWeight: 800, marginTop: '0.2rem' }}>
                               Max retail limit (50 pcs)
                             </div>
