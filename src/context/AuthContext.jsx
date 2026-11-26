@@ -14,25 +14,28 @@ export const AuthProvider = ({ children }) => {
   });
 
   const [token, setToken] = useState(() => localStorage.getItem('pr3_token') || null);
-  const [loading, setLoading] = useState(true);
 
-  // Sync state and verify user with backend on initial mount
+  // Always false — page renders immediately from localStorage cache.
+  // Token is verified silently in the background by the useEffect below.
+  const [loading] = useState(false);
+
+  // Silently verify token in the background — does NOT block page render
   useEffect(() => {
     const verifyUser = async () => {
       const savedToken = localStorage.getItem('pr3_token');
-      if (savedToken) {
-        try {
-          const res = await authService.getMe();
-          if (res && res.user) {
-            setUser(res.user);
-            localStorage.setItem('pr3_user', JSON.stringify(res.user));
-          }
-        } catch {
-          // Token invalid or expired
-          logout();
+      if (!savedToken) return; // No session, nothing to verify
+
+      try {
+        const res = await authService.getMe();
+        if (res && res.user) {
+          // Silently refresh user data from backend
+          setUser(res.user);
+          localStorage.setItem('pr3_user', JSON.stringify(res.user));
         }
+      } catch {
+        // Token is invalid or expired — log the user out silently
+        logout();
       }
-      setLoading(false);
     };
 
     verifyUser();
