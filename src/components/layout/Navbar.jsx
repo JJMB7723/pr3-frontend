@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useCart } from '../../context/CartContext';
 import Button from '../common/Button';
 
 const Navbar = () => {
   const { user, isAuthenticated, logout, role } = useAuth();
+  const { cartCount } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -112,15 +114,40 @@ const Navbar = () => {
             <>
               {role === 'customer' && (
                 <>
+                  {/* Cart link with item count badge */}
                   <Link
                     to="/cart"
                     style={{
                       fontSize: '0.88rem',
                       fontWeight: 700,
                       color: isLinkActive('/cart') ? 'var(--color-coral)' : 'var(--color-black)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      position: 'relative',
                     }}
                   >
                     Cart
+                    {cartCount > 0 && (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minWidth: '20px',
+                          height: '20px',
+                          padding: '0 5px',
+                          borderRadius: '999px',
+                          backgroundColor: 'var(--color-coral)',
+                          color: '#fff',
+                          fontSize: '0.72rem',
+                          fontWeight: 900,
+                          lineHeight: 1,
+                        }}
+                      >
+                        {cartCount > 99 ? '99+' : cartCount}
+                      </span>
+                    )}
                   </Link>
                   <Link
                     to="/orders"

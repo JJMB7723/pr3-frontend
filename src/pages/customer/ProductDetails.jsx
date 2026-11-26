@@ -6,6 +6,7 @@ import Button from '../../components/common/Button';
 import productService from '../../services/productService';
 import cartService from '../../services/cartService';
 import { useAuth } from '../../context/AuthContext';
+import { useCart } from '../../context/CartContext';
 import { getProductImage } from '../../assets/apparelImages';
 
 const ProductDetails = () => {
@@ -16,6 +17,7 @@ const ProductDetails = () => {
   const [loading, setLoading] = useState(true);
   const [statusMsg, setStatusMsg] = useState('');
   const { isAuthenticated, user } = useAuth();
+  const { incrementCart } = useCart();
   const isRetailCustomer = user?.role !== 'business';
   const MAX_RETAIL_QTY = 50;
 
@@ -68,6 +70,7 @@ const ProductDetails = () => {
         product_variant_id: selectedVariant.id,
         quantity: requestedQty,
       });
+      incrementCart(requestedQty);  // Update navbar badge instantly
       setStatusMsg(`Added ${requestedQty} item(s) to your cart.`);
     } catch (err) {
       setStatusMsg(err.response?.data?.message || 'Failed to add to cart.');

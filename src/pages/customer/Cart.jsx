@@ -5,9 +5,11 @@ import Loader from '../../components/common/Loader';
 import Button from '../../components/common/Button';
 import cartService from '../../services/cartService';
 import { useAuth } from '../../context/AuthContext';
+import { useCart } from '../../context/CartContext';
 
 const Cart = () => {
   const { user } = useAuth();
+  const { refreshCartCount, resetCart } = useCart();
   const isRetailCustomer = user?.role !== 'business';
   const MAX_RETAIL_QTY = 50;
 
@@ -204,6 +206,7 @@ const Cart = () => {
   const handleRemove = async (itemId) => {
     try {
       await cartService.removeItem(itemId);
+      refreshCartCount(); // Sync badge in navbar
       loadCart();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to remove item.');
@@ -213,6 +216,7 @@ const Cart = () => {
   const handleClear = async () => {
     try {
       await cartService.clearCart();
+      resetCart(); // Badge goes to 0 instantly
       loadCart();
     } catch {
       setError('Failed to clear cart.');

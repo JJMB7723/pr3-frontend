@@ -8,6 +8,7 @@ import Button from '../../components/common/Button';
 import productService from '../../services/productService';
 import cartService from '../../services/cartService';
 import { useAuth } from '../../context/AuthContext';
+import { useCart } from '../../context/CartContext';
 import { HERO_IMAGE, CATEGORY_IMAGES } from '../../assets/apparelImages';
 
 const Home = () => {
@@ -18,6 +19,7 @@ const Home = () => {
   const [category, setCategory] = useState('');
   const [notification, setNotification] = useState('');
   const { isAuthenticated } = useAuth();
+  const { incrementCart } = useCart();
 
   useEffect(() => {
     loadData();
@@ -56,6 +58,7 @@ const Home = () => {
 
     try {
       await cartService.addItem({ product_variant_id: variantId, quantity: 1 });
+      incrementCart(1);  // Update navbar badge instantly
       setNotification('Garment added to your order.');
       setTimeout(() => setNotification(''), 3500);
     } catch (err) {
