@@ -7,6 +7,7 @@ import productService from '../../services/productService';
 import cartService from '../../services/cartService';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
+import { useToast } from '../../context/ToastContext';
 import { getProductImage } from '../../assets/apparelImages';
 
 const ProductDetails = () => {
@@ -18,6 +19,7 @@ const ProductDetails = () => {
   const [statusMsg, setStatusMsg] = useState('');
   const { isAuthenticated, user } = useAuth();
   const { incrementCart } = useCart();
+  const { showToast } = useToast();
   const isRetailCustomer = user?.role !== 'business';
   const MAX_RETAIL_QTY = 50;
 
@@ -41,27 +43,37 @@ const ProductDetails = () => {
 
   const handleAddToCart = async () => {
     if (!isAuthenticated) {
-      setStatusMsg('Please sign in to add this item to your cart.');
+      const msg = 'Please sign in to add this item to your cart.';
+      setStatusMsg(msg);
+      showToast(msg, 'error');
       return;
     }
     if (!selectedVariant) {
-      setStatusMsg('Please select a product variant first.');
+      const msg = 'Please select a product variant first.';
+      setStatusMsg(msg);
+      showToast(msg, 'warning');
       return;
     }
 
     const availableStock = selectedVariant.inventory?.quantity ?? 0;
     if (availableStock <= 0) {
-      setStatusMsg('Cannot add to order: This product variant is currently out of stock.');
+      const msg = 'Cannot add to order: This product variant is currently out of stock.';
+      setStatusMsg(msg);
+      showToast(msg, 'error');
       return;
     }
 
     const requestedQty = parseInt(quantity, 10);
     if (isRetailCustomer && requestedQty > MAX_RETAIL_QTY) {
-      setStatusMsg(`Retail customer orders are limited to a maximum of ${MAX_RETAIL_QTY} units. For larger wholesale quantities, please visit Wholesale Bulk Orders.`);
+      const msg = `Retail customer orders are limited to a maximum of ${MAX_RETAIL_QTY} units. For larger wholesale quantities, please visit Wholesale Bulk Orders.`;
+      setStatusMsg(msg);
+      showToast(msg, 'warning');
       return;
     }
     if (requestedQty > availableStock) {
-      setStatusMsg(`Cannot add ${requestedQty} units: Only ${availableStock} units available in stock.`);
+      const msg = `Cannot add ${requestedQty} units: Only ${availableStock} units available in stock.`;
+      setStatusMsg(msg);
+      showToast(msg, 'error');
       return;
     }
 
@@ -72,8 +84,11 @@ const ProductDetails = () => {
       });
       incrementCart(requestedQty);  // Update navbar badge instantly
       setStatusMsg(`Added ${requestedQty} item(s) to your cart.`);
+      showToast('Added to cart successfully!');
     } catch (err) {
-      setStatusMsg(err.response?.data?.message || 'Failed to add to cart.');
+      const msg = err.response?.data?.message || 'Failed to add to cart.';
+      setStatusMsg(msg);
+      showToast(msg, 'error');
     }
   };
 

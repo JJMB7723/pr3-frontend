@@ -9,6 +9,7 @@ import productService from '../../services/productService';
 import cartService from '../../services/cartService';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
+import { useToast } from '../../context/ToastContext';
 import { HERO_IMAGE, CATEGORY_IMAGES } from '../../assets/apparelImages';
 
 const Home = () => {
@@ -17,9 +18,9 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
-  const [notification, setNotification] = useState('');
   const { isAuthenticated } = useAuth();
   const { incrementCart } = useCart();
+  const { showToast } = useToast();
 
   useEffect(() => {
     loadData();
@@ -51,20 +52,17 @@ const Home = () => {
 
   const handleAddToCart = async (variantId) => {
     if (!isAuthenticated) {
-      setNotification('Please sign in to add items to your shopping cart.');
-      setTimeout(() => setNotification(''), 3500);
+      showToast('Please sign in to add items to your cart.', 'error');
       return;
     }
 
     try {
       await cartService.addItem({ product_variant_id: variantId, quantity: 1 });
-      incrementCart(1);  // Update navbar badge instantly
-      setNotification('Garment added to your order.');
-      setTimeout(() => setNotification(''), 3500);
+      incrementCart(1);
+      showToast('Added to cart successfully!');
     } catch (err) {
       const msg = err.response?.data?.message || 'Failed to add item to cart.';
-      setNotification(msg);
-      setTimeout(() => setNotification(''), 3500);
+      showToast(msg, 'error');
     }
   };
 
@@ -199,24 +197,6 @@ const Home = () => {
           </div>
         </div>
       </section>
-
-      {/* Global Notification Banner */}
-      {notification && (
-        <div
-          style={{
-            padding: '0.85rem',
-            marginBottom: '1.25rem',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--color-coral)',
-            backgroundColor: 'var(--color-coral-light)',
-            fontWeight: 700,
-            textAlign: 'center',
-            color: 'var(--color-coral)',
-          }}
-        >
-          ✓ {notification}
-        </div>
-      )}
 
       {/* =========================================================================
           2. FEATURED PRODUCT COLLECTION

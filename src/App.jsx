@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
+import { ToastProvider } from './context/ToastContext';
 import ProtectedRoute from './routes/ProtectedRoute';
 
 // Styles
@@ -42,8 +43,9 @@ function App() {
   return (
     <AuthProvider>
       <CartProvider>
-      <BrowserRouter>
-        <Routes>
+        <ToastProvider>
+        <BrowserRouter>
+          <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Home />} />
           <Route path="/products" element={<Home />} />
@@ -230,7 +232,8 @@ function App() {
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </BrowserRouter>
+        </BrowserRouter>
+        </ToastProvider>
       </CartProvider>
     </AuthProvider>
   );
