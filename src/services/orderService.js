@@ -1,7 +1,13 @@
 import api from './api';
 
 export const orderService = {
-  // POST /api/orders { shipping_address, payment_method, notes }
+  // POST /api/orders/validate-coupon { coupon_code }
+  validateCoupon: async (coupon_code, subtotal) => {
+    const response = await api.post('/orders/validate-coupon', { coupon_code, subtotal });
+    return response.data;
+  },
+
+  // POST /api/orders { shipping_address, payment_method, notes, coupon_code }
   createOrder: async (orderData) => {
     const response = await api.post('/orders', orderData);
     return response.data;
