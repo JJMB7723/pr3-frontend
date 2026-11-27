@@ -56,6 +56,8 @@
 
 html {
   scroll-behavior: smooth;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -64,6 +66,8 @@ body {
   font-family: var(--font-family);
   font-size: 15px;
   line-height: 1.6;
+  max-width: 100%;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -388,6 +392,12 @@ h1, h2, h3, h4, h5, h6 {
   .pr3-card {
     padding: 1.1rem 1rem;
     border-radius: var(--radius-md);
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .pr3-table-wrapper {
+    max-width: 100%;
   }
 
   .pr3-table th, .pr3-table td {
@@ -396,7 +406,7 @@ h1, h2, h3, h4, h5, h6 {
     white-space: nowrap;
   }
 
-  /* Collapse multi-column inline grids cleanly on phones */
+  /* Collapse multi-column inline grids cleanly on phones and prevent child overflow */
   div[style*="grid-template-columns: 1fr 1fr"],
   div[style*="grid-template-columns: 1fr 1fr 1fr"],
   div[style*="grid-template-columns: 1.8fr 1fr"],
@@ -405,6 +415,11 @@ h1, h2, h3, h4, h5, h6 {
   div[style*="minmax(320px"],
   section[style*="minmax(360px"],
   section[style*="minmax(320px"] {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  div[style*="display: grid"] > *,
+  section[style*="display: grid"] > * {
+    min-width: 0 !important;
   }
 }

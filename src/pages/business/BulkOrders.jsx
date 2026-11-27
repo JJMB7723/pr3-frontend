@@ -290,7 +290,7 @@ const BulkOrders = () => {
         <form onSubmit={handlePlaceBulkOrder}>
           <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '1.5rem' }}>
             {/* Left Column: Garment Selector & Current Order Manifest */}
-            <div>
+            <div style={{ minWidth: 0 }}>
               {/* Step 1: Garment & Variant Picker */}
               <div className="pr3-card" style={{ marginBottom: '1.25rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.9rem' }}>
@@ -607,7 +607,7 @@ const BulkOrders = () => {
                     </p>
                   </div>
                 ) : (
-                  <div className="pr3-table-wrapper" style={{ boxShadow: 'none' }}>
+                  <div className="pr3-table-wrapper" style={{ boxShadow: 'none', maxWidth: '100%' }}>
                     <table className="pr3-table">
                       <thead>
                         <tr>
