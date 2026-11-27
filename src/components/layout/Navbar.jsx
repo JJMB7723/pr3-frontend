@@ -296,9 +296,28 @@ const Navbar = () => {
                   <Link
                     to="/cart"
                     onClick={() => setMobileMenuOpen(false)}
-                    style={{ fontWeight: 700 }}
+                    style={{ fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
                   >
                     Shopping Cart
+                    {cartCount > 0 && (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minWidth: '20px',
+                          height: '20px',
+                          padding: '0 6px',
+                          borderRadius: '999px',
+                          backgroundColor: 'var(--color-coral)',
+                          color: '#fff',
+                          fontSize: '0.72rem',
+                          fontWeight: 900,
+                        }}
+                      >
+                        {cartCount > 99 ? '99+' : cartCount}
+                      </span>
+                    )}
                   </Link>
                   <Link
                     to="/orders"

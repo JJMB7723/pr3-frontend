@@ -1,0 +1,10 @@
+{
+  "name": "PR3 Apparel & Manufacturing",
+  "short_name": "PR3",
+  "description": "PR3 Luxury Apparel Commerce, Wholesale & Manufacturing Platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#4A0F14",
+  "orientation": "portrait-primary"
+}

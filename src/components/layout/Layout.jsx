@@ -18,16 +18,9 @@ const Layout = ({ children, withSidebar = false }) => {
       }}
     >
       <Navbar />
-      <div style={{ display: 'flex', flex: 1, minHeight: 'calc(100vh - 70px)' }}>
+      <div className={`pr3-layout-body ${showSidebar ? 'pr3-has-sidebar' : ''}`}>
         {showSidebar && <Sidebar />}
-        <main
-          style={{
-            flex: 1,
-            minWidth: 0,
-            padding: showSidebar ? '1.5rem 1.8rem' : '1.5rem 0',
-            width: '100%',
-          }}
-        >
+        <main className={`pr3-main-content ${showSidebar ? 'pr3-main-with-sidebar' : ''}`}>
           {showSidebar ? children : <div className="pr3-container">{children}</div>}
         </main>
       </div>

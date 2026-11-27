@@ -103,6 +103,7 @@ const MyOrders = () => {
             <p style={{ fontWeight: 600 }}>You haven't placed any orders yet.</p>
           </div>
         ) : (
+          <div className="pr3-table-wrapper">
           <table className="pr3-table">
             <thead>
               <tr>
@@ -185,6 +186,7 @@ const MyOrders = () => {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </Layout>
