@@ -46,7 +46,7 @@ const AdminProducts = () => {
   const loadData = async () => {
     try {
       const [prodRes, catRes] = await Promise.all([
-        productService.getProducts({ limit: 100 }),
+        productService.getProducts({ limit: 100, include_inactive: true }),
         productService.getCategories(),
       ]);
       const items = Array.isArray(prodRes.data) ? prodRes.data : prodRes.data?.rows || [];
@@ -135,6 +135,22 @@ const AdminProducts = () => {
       setMsg({ text: err.response?.data?.message || 'Failed to update product.', type: 'error' });
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleToggleActive = async (product) => {
+    const currentlyActive = product.isActive !== false && product.is_active !== false;
+    const nextState = !currentlyActive;
+    try {
+      await productService.updateProduct(product.id, { is_active: nextState });
+      setMsg({
+        text: `Product '${product.name}' is now ${nextState ? 'Active (visible to customers)' : 'Inactive (hidden from customers)'}.`,
+        type: 'success',
+      });
+      loadData();
+      setTimeout(() => setMsg({ text: '', type: '' }), 4000);
+    } catch (err) {
+      setMsg({ text: err.response?.data?.message || 'Failed to update product status.', type: 'error' });
     }
   };
 
@@ -272,6 +288,7 @@ const AdminProducts = () => {
                 <th>Category</th>
                 <th>SKU</th>
                 <th>Base Price</th>
+                <th>Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -280,9 +297,10 @@ const AdminProducts = () => {
                 const imgUrl = p.image_url || p.imageUrl || getProductImage(p);
                 const displaySku = p.sku || p.variants?.[0]?.sku || `PR3-SKU-${p.id}`;
                 const displayPrice = p.variants?.[0]?.price || p.base_price || 0;
+                const isActive = p.isActive !== false && p.is_active !== false;
 
                 return (
-                  <tr key={p.id}>
+                  <tr key={p.id} style={{ opacity: isActive ? 1 : 0.65 }}>
                     <td>
                       <div
                         style={{
@@ -338,7 +356,15 @@ const AdminProducts = () => {
                       ${parseFloat(displayPrice).toFixed(2)}
                     </td>
                     <td>
-                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <span
+                        className={`pr3-badge ${isActive ? 'pr3-badge-sage' : 'pr3-badge-coral'}`}
+                        style={{ fontSize: '0.72rem' }}
+                      >
+                        {isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                         <Button
                           variant="secondary"
                           onClick={() => openEditModal(p)}
@@ -349,6 +375,18 @@ const AdminProducts = () => {
                           }}
                         >
                           🖼️ Change Image / Edit
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          onClick={() => handleToggleActive(p)}
+                          style={{
+                            padding: '0.45rem 0.85rem',
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            color: isActive ? '#b45309' : 'var(--color-sage)',
+                          }}
+                        >
+                          {isActive ? 'Make Inactive' : 'Activate'}
                         </Button>
                         <Button
                           variant="secondary"
